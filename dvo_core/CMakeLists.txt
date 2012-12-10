@@ -28,6 +28,10 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 find_package(Eigen REQUIRED)
 include_directories(${Eigen_INCLUDE_DIRS})
 
+# VTK library
+find_package(VTK REQUIRED)
+include_directories(${VTK_INCLUDE_DIRS})
+
 # SSE flags
 rosbuild_check_for_sse()
 
