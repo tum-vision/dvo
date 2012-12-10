@@ -41,7 +41,7 @@ Checkout the branch for your ROS version into a folder in your `ROS_PACKAGE_PATH
 
 ## Usage
 
-Estimating the trajectory from an RGB-D image stream:
+Estimating the camera trajectory from an RGB-D image stream:
 
  *  Start the OpenNI camera driver: `roslaunch openni_launch openni.launch`
  *  Start the dvo *camera_tracker* node: `rosrun dvo_ros camera_tracker`
@@ -49,12 +49,12 @@ Estimating the trajectory from an RGB-D image stream:
     *   In `/camera/driver` enable *depth_registration* on
     *   In `/camera_tracker` enable *reconstruction*, *use_weighting*, *run_dense_tracking*, and *use_dense_tracking_estimate*
 
-If everything works, the stdout of the *camera_tracker* node should show `[ WARN] [1355131430.132265592]: RGB image size has changed, resetting tracker!` and the camera pose is published on the `/rgbd/pose` topic. You can restart the camera pose estimation by disabling and enabling the *run_dense_tracking* option.
+If everything works, the stdout of the *camera_tracker* node should show `[ WARN] [1355131430.132265592]: RGB image size has changed, resetting tracker!` and the camera pose is published on the `/rgbd/pose` topic. You can restart the camera motion estimation by disabling and enabling the *run_dense_tracking* option.
 
 For visualization:
 
  *  Start RVIZ
- *  Set the *Target Frame* to */world*
+ *  Set the *Target Frame* to `/world`
  *  Add an *Interactive Marker* display and set its *Update Topic* to `/dvo_vis/update`
  *  Add a *PointCloud2* display and set its *Topic* to `/dvo_vis/current_cloud`
  *  Add a second *PointCloud2* display and set its *Topic* to `/dvo_vis/first_cloud` to show the point cloud captured when camera motion estimation started.
