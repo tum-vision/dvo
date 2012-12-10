@@ -1,0 +1,28 @@
+<launch>
+  <arg name="dataset" />
+  <arg name="launch_dir" value="$(find dvo_benchmark)/launch" />
+  <arg name="output_dir" value="$(find dvo_benchmark)/output" />
+  
+  <!-- if relative path the file will end up in ~/.ros/ -->
+  <arg name="trajectory_file" default="$(arg output_dir)/trajectory.txt" />
+  <arg name="video_folder" default="$(arg output_dir)/video" />
+  
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(arg launch_dir)/benchmark_logging.config" />
+  <env name="ROSCONSOLE_FORMAT"      value="${logger}: { ${message} }" />
+
+  <node pkg="dvo_benchmark" type="benchmark" name="benchmark" output="screen">
+    <param type="string" name="rgbdpair_file" value="$(arg dataset)/assoc.txt" />
+    <param type="string" name="groundtruth_file" value="$(arg dataset)/groundtruth.txt" />
+    
+    <param type="bool" name="estimate_trajectory" value="false" />
+    <param type="string" name="trajectory_file" value="$(arg trajectory_file)" />
+    
+    <param type="bool" name="show_estimate" value="true" />
+    <param type="bool" name="show_groundtruth" value="true" />
+    
+    <param type="bool" name="render_video" value="false" />
+    <param type="string" name="video_folder" value="$(arg video_folder)" />
+    
+  	<rosparam command="load" file="$(arg launch_dir)/benchmark.yaml" />
+  </node>
+</launch>
