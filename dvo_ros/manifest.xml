@@ -30,6 +30,7 @@
   <rosdep name="eigen" />
   
   <export>
+      <nodelet plugin="${prefix}/nodelet_plugins.xml" />
       <cpp cflags="-I${prefix}/include -I${prefix}/cfg/cpp"
         lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -ldvo_ros"/>
   </export>
