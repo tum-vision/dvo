@@ -6,6 +6,7 @@
   <!-- if relative path the file will end up in ~/.ros/ -->
   <arg name="trajectory_file" default="$(arg output_dir)/trajectory.txt" />
   <arg name="video_folder" default="$(arg output_dir)/video" />
+  <arg name="camera_file" default="$(arg output_dir)/camera.txt" />
   
   <env name="ROSCONSOLE_CONFIG_FILE" value="$(arg launch_dir)/benchmark_logging.config" />
   <env name="ROSCONSOLE_FORMAT"      value="${logger}: { ${message} }" />
@@ -22,6 +23,8 @@
     
     <param type="bool" name="render_video" value="false" />
     <param type="string" name="video_folder" value="$(arg video_folder)" />
+    
+    <param type="string" name="camera_file" value="$(arg camera_file)" />
     
   	<rosparam command="load" file="$(arg launch_dir)/benchmark.yaml" />
   </node>
