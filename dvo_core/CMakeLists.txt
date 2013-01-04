@@ -52,6 +52,7 @@ rosbuild_add_library(${PROJECT_NAME}
     src/util/histogram.cpp
     
     src/visualization/async_point_cloud_builder.cpp
+    src/visualization/point_cloud_aggregator.cpp
     src/visualization/visualizer.cpp
     src/visualization/camera_trajectory_visualizer.cpp
     src/visualization/pcl_camera_trajetory_visualizer.cpp

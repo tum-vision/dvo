@@ -105,6 +105,12 @@ public:
   virtual TrajectoryVisualizer::Ptr trajectory(std::string name) = 0;
 
   virtual void reset() = 0;
+
+  virtual bool native(void*& native_visualizer)
+  {
+    native_visualizer = 0;
+    return false;
+  }
 };
 
 class NoopCameraTrajectoryVisualizer : public CameraTrajectoryVisualizerInterface

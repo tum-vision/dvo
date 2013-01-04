@@ -18,39 +18,38 @@
  *  along with dvo.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ROS_CAMERA_TRAJECTORY_VISUALIZER_H_
-#define ROS_CAMERA_TRAJECTORY_VISUALIZER_H_
+#ifndef POINT_CLOUD_AGGREGATOR_H_
+#define POINT_CLOUD_AGGREGATOR_H_
 
-#include <dvo/visualization/camera_trajectory_visualizer.h>
+#include <dvo/visualization/async_point_cloud_builder.h>
 
-#include <ros/ros.h>
-
-namespace dvo_ros
+namespace dvo
 {
 namespace visualization
 {
 
 namespace internal
 {
-struct RosCameraTrajectoryVisualizerImpl;
+  class PointCloudAggregatorImpl;
 } /* namespace internal */
 
-class RosCameraTrajectoryVisualizer : public dvo::visualization::CameraTrajectoryVisualizerInterface
+class PointCloudAggregator
 {
 public:
-  RosCameraTrajectoryVisualizer(ros::NodeHandle& nh);
-  virtual ~RosCameraTrajectoryVisualizer();
+  typedef boost::function<dvo::visualization::AsyncPointCloudBuilder::PointCloud::Ptr()> PointCloudBuilderCallable;
 
-  virtual dvo::visualization::CameraVisualizer::Ptr camera(std::string name);
-  virtual dvo::visualization::TrajectoryVisualizer::Ptr trajectory(std::string name);
+  PointCloudAggregator();
+  virtual ~PointCloudAggregator();
 
-  virtual void reset();
+  void add(const std::string& name, const dvo::visualization::AsyncPointCloudBuilder::PointCloud::Ptr& cloud);
+  void add(const std::string& name, const PointCloudBuilderCallable& cloud);
+  void remove(const std::string& name);
 
-  virtual bool native(void*& native_visualizer);
+  dvo::visualization::AsyncPointCloudBuilder::PointCloud::Ptr build();
 private:
-  internal::RosCameraTrajectoryVisualizerImpl* impl_;
+  boost::scoped_ptr<internal::PointCloudAggregatorImpl> impl_;
 };
 
 } /* namespace visualization */
-} /* namespace dvo_ros */
-#endif /* ROS_CAMERA_TRAJECTORY_VISUALIZER_H_ */
+} /* namespace dvo */
+#endif /* POINT_CLOUD_AGGREGATOR_H_ */

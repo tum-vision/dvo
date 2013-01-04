@@ -31,6 +31,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <dvo/visualization/async_point_cloud_builder.h>
+#include <dvo/visualization/point_cloud_aggregator.h>
 
 namespace dvo
 {
@@ -140,7 +141,7 @@ public:
     return *this;
   }
 
-  void updateVisualizer(pcl::visualization::PCLVisualizer& visualizer)
+  void updateVisualizer(pcl::visualization::PCLVisualizer& visualizer, PointCloudAggregator& aggregator)
   {
     boost::mutex::scoped_lock lock(m_);
 
@@ -150,22 +151,24 @@ public:
 
     if(visibility_ != ShowCameraAndCloud)
     {
-      visualizer.removePointCloud(name());
+      //visualizer.removePointCloud(name());
+      aggregator.remove(name());
     }
 
     if(visibility_ != ShowNothing && cloud_)
     {
       if(visibility_ == ShowCameraAndCloud)
       {
-        if(!visualizer.updatePointCloud(cloud_->build(), name()))
-        {
-          visualizer.addPointCloud(cloud_->build(), name());
-        }
+        aggregator.add(name(), cloud_->build());
+        //if(!visualizer.updatePointCloud(cloud_->build(), name()))
+        //{
+        //  visualizer.addPointCloud(cloud_->build(), name());
+        //}
         //visualizer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, name());
       }
-      visualizer.addCube(cloud_->pose.translation().cast<float>(), Eigen::Quaternionf(cloud_->pose.rotation().cast<float>()), 0.05, 0.05, 0.05, cube_id);
-      visualizer.setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, color().r, color().g, color().b, cube_id);
-      visualizer.setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_SURFACE, cube_id);
+      //visualizer.addCube(cloud_->pose.translation().cast<float>(), Eigen::Quaternionf(cloud_->pose.rotation().cast<float>()), 0.05, 0.05, 0.05, cube_id);
+      //visualizer.setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, color().r, color().g, color().b, cube_id);
+      //visualizer.setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_SURFACE, cube_id);
     }
   }
 private:
@@ -288,9 +291,19 @@ public:
       local_trajectories = trajectory_visualizers_;
     }
 
+    // sync visualizer
+    boost::mutex::scoped_lock lock(sync_);
+
     for(CameraVisualizerMap::iterator it = local_cameras.begin(); it != local_cameras.end(); ++it)
     {
-      it->second->updateVisualizer(*visualizer_);
+      it->second->updateVisualizer(*visualizer_, cloud_aggregator_);
+    }
+
+    AsyncPointCloudBuilder::PointCloud::Ptr aggregated_cloud = cloud_aggregator_.build();
+
+    if(!visualizer_->updatePointCloud(aggregated_cloud, "aggregated_cloud"))
+    {
+      visualizer_->addPointCloud(aggregated_cloud, "aggregated_cloud");
     }
 
     for(TrajectoryVisualizerMap::iterator it = local_trajectories.begin(); it != local_trajectories.end(); ++it)
@@ -300,7 +313,7 @@ public:
 
     visualizer_->spinOnce(milliseconds);
   }
-
+  boost::mutex sync_;
 private:
   boost::shared_ptr<pcl::visualization::PCLVisualizer> visualizer_;
   boost::shared_ptr<boost::thread> visualizer_thread_;
@@ -310,6 +323,7 @@ private:
   TrajectoryVisualizerMap trajectory_visualizers_;
 
   std::map<std::string, PclCameraVisualizer::Ptr> clouds_;
+  PointCloudAggregator cloud_aggregator_;
 
   void execVisualizerThread()
   {
@@ -317,7 +331,7 @@ private:
 
     while(!visualizer_->wasStopped())
     {
-      render(15);
+      render(1);
     }
     visualizer_.reset();
   }
@@ -372,6 +386,11 @@ void PclCameraTrajectoryVisualizer::bindSwitchToKey(Switch& s, std::string key)
 void PclCameraTrajectoryVisualizer::render(int milliseconds)
 {
   impl_->render(milliseconds);
+}
+
+boost::mutex& PclCameraTrajectoryVisualizer::sync()
+{
+  return impl_->sync_;
 }
 
 pcl::visualization::PCLVisualizer& PclCameraTrajectoryVisualizer::visualizer()
