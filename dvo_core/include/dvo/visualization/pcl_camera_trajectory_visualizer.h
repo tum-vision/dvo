@@ -23,6 +23,8 @@
 
 #include <dvo/visualization/camera_trajectory_visualizer.h>
 
+#include <boost/thread/mutex.hpp>
+
 #include <pcl/visualization/pcl_visualizer.h>
 
 namespace dvo
@@ -81,6 +83,8 @@ public:
   void bindSwitchToKey(Switch& s, std::string key);
 
   void render(int milliseconds = 15);
+
+  boost::mutex& sync();
 
   pcl::visualization::PCLVisualizer& visualizer();
 private:

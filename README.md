@@ -56,8 +56,7 @@ For visualization:
  *  Start RVIZ
  *  Set the *Target Frame* to `/world`
  *  Add an *Interactive Marker* display and set its *Update Topic* to `/dvo_vis/update`
- *  Add a *PointCloud2* display and set its *Topic* to `/dvo_vis/current_cloud`
- *  Add a second *PointCloud2* display and set its *Topic* to `/dvo_vis/first_cloud` to show the point cloud captured when camera motion estimation started.
+ *  Add a *PointCloud2* display and set its *Topic* to `/dvo_vis/cloud`
 
 The red camera shows the current camera position. The blue camera displays the initial camera position.
 
