@@ -58,7 +58,7 @@ dvo::core::RgbdImagePyramid::Ptr load(std::string rgb_file, std::string depth_fi
     {
       grey = rgb;
     }
-    //depth.convertTo(depth_float, CV_32F, 1.0 / 5000.0);
+
     grey.convertTo(grey_s16, CV_32F);
   }
   else
@@ -66,31 +66,15 @@ dvo::core::RgbdImagePyramid::Ptr load(std::string rgb_file, std::string depth_fi
     grey_s16 = rgb;
   }
 
-  //depth_mask = depth == 0;
-  //inpaint(depth, depth_mask, depth_inpainted, 5, 0.5f);
-
   if(depth.type() != CV_32FC1)
   {
-    dvo::core::SurfacePyramid::convertRawDepthImageSse(depth, depth_float, 1.0f / 5000.0f * 1.035f);
+    dvo::core::SurfacePyramid::convertRawDepthImageSse(depth, depth_float, 1.0f / 5000.0f);
   }
   else
   {
     depth_float = depth;
   }
-  //
-  //cv::Mat depth_raw_smoothed, depth_raw_smoothed_float;
-  //cv::medianBlur(depth, depth_raw_smoothed, 3);
-  //
-  //SurfacePyramid::convertRawDepthImageSse(depth_raw_smoothed, depth_raw_smoothed_float, 1.0f / 5000.0f);
-  //
-  //cv::Mat depth_float_smoothed;
-  //
-  //cv::medianBlur(depth_float, depth_float_smoothed, 3);
-  //
-  //tracker::util::show("raw smoothed", depth_raw_smoothed_float);
-  //tracker::util::show("float smoothed", depth_float_smoothed);
-  //tracker::util::dbgdata::cmp("depth smoothed", depth_raw_smoothed_float, depth_float_smoothed);
-  //cv::waitKey();
+
   dvo::core::RgbdImagePyramid::Ptr result(new dvo::core::RgbdImagePyramid(grey_s16, depth_float));
 
   if(rgb_available)
@@ -108,6 +92,8 @@ public:
     std::string TrajectoryFile;
     bool RenderVideo;
     std::string VideoFolder;
+
+    std::string CameraFile;
 
     std::string RgbdPairFile;
     std::string GroundtruthFile;
@@ -128,6 +114,8 @@ public:
   void createReferenceCamera(dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer, const dvo::core::RgbdImage& img, const dvo::core::IntrinsicMatrix& intrinsics, const Eigen::Affine3d& pose);
 
   void renderWhileSwitchAndNotTerminated(dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer, const dvo::visualization::Switch& s);
+
+  void processInput(dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer);
 private:
   ros::NodeHandle& nh_, nh_private_;
   Config cfg_;
@@ -135,6 +123,8 @@ private:
   std::ostream *trajectory_out_;
   dvo_benchmark::FileReader<dvo_benchmark::Groundtruth> *groundtruth_reader_;
   dvo_benchmark::FileReader<dvo_benchmark::RgbdPair> *rgbdpair_reader_;
+
+  dvo::visualization::Switch dump_camera_pose_, load_camera_pose_;
 };
 
 bool BenchmarkNode::Config::EstimateRequired()
@@ -150,8 +140,11 @@ bool BenchmarkNode::Config::VisualizationRequired()
 BenchmarkNode::BenchmarkNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private) :
     nh_(nh),
     nh_private_(nh_private),
+    trajectory_out_(0),
     groundtruth_reader_(0),
-    rgbdpair_reader_(0)
+    rgbdpair_reader_(0),
+    dump_camera_pose_(false),
+    load_camera_pose_(false)
 {
 }
 
@@ -208,6 +201,8 @@ bool BenchmarkNode::configure()
     }
   }
 
+  nh_private_.param("camera_file", cfg_.CameraFile, std::string(""));
+
   // ground truth related stuff
   nh_private_.param("show_groundtruth", cfg_.ShowGroundtruth, false);
   if(cfg_.ShowGroundtruth)
@@ -241,6 +236,8 @@ void BenchmarkNode::renderWhileSwitchAndNotTerminated(dvo::visualization::Camera
   {
     while(s.value() && ros::ok())
     {
+      processInput(visualizer);
+
       // manual render in case we want to render a video
       if(cfg_.RenderVideo)
       {
@@ -248,8 +245,72 @@ void BenchmarkNode::renderWhileSwitchAndNotTerminated(dvo::visualization::Camera
       }
       else
       {
-        ros::Rate(30).sleep();
+        ros::Rate(5).sleep();
       }
+    }
+  }
+}
+
+void BenchmarkNode::processInput(dvo::visualization::CameraTrajectoryVisualizerInterface* visualizer)
+{
+  if(cfg_.VisualizationRequired())
+  {
+    if(dump_camera_pose_.value())
+    {
+      if(!cfg_.CameraFile.empty())
+      {
+        std::cerr << "saving camera pose to '" << cfg_.CameraFile << "'" << std::endl;
+
+        std::vector<pcl::visualization::Camera> cams;
+        ((dvo::visualization::PclCameraTrajectoryVisualizer*) visualizer)->visualizer().getCameras(cams);
+
+        // same output format as PCLVisualizerInteractorStyle (when pressing 'c' key)
+        std::ofstream camera_pose_file(cfg_.CameraFile.c_str());
+        camera_pose_file
+        << cams[0].clip[0] << "," << cams[0].clip[1] << "/"
+        << cams[0].focal[0] << "," << cams[0].focal[1] << "," << cams[0].focal[2] << "/"
+        << cams[0].pos[0] << "," << cams[0].pos[1] << "," << cams[0].pos[2] << "/"
+        << cams[0].view[0] << "," << cams[0].view[1] << "," << cams[0].view[2] << "/"
+        << cams[0].fovy << "/"
+        << cams[0].window_size[0] << "," << cams[0].window_size[1] << "/"
+        << cams[0].window_pos[0] << "," << cams[0].window_pos[1];
+        camera_pose_file.close();
+      }
+      else
+      {
+        std::cerr << "Can't save camera pose, set the 'camera_file' parameter!" << std::endl;
+      }
+
+      dump_camera_pose_.toggle();
+    }
+
+    if(load_camera_pose_.value())
+    {
+      if(!cfg_.CameraFile.empty())
+      {
+        std::cerr << "loading camera pose from '" << cfg_.CameraFile << "'" << std::endl;
+
+        char* option_string = "-cam";
+        char parameter_string[2048];
+
+        std::ifstream camera_pose_file(cfg_.CameraFile.c_str());
+        camera_pose_file.getline(parameter_string, 2048, '\n');
+        camera_pose_file.close();
+
+        char** argv = new char*[3];
+        argv[1] = option_string;
+        argv[2] = parameter_string;
+
+        ((dvo::visualization::PclCameraTrajectoryVisualizer*) visualizer)->visualizer().getCameraParameters(3, argv);
+        ((dvo::visualization::PclCameraTrajectoryVisualizer*) visualizer)->visualizer().updateCamera();
+        delete [] argv;
+      }
+      else
+      {
+        std::cerr << "Can't load camera pose, set the 'camera_file' parameter!" << std::endl;
+      }
+
+      load_camera_pose_.toggle();
     }
   }
 }
@@ -286,6 +347,13 @@ void BenchmarkNode::run()
   {
     visualizer = new dvo::visualization::PclCameraTrajectoryVisualizer(!cfg_.RenderVideo);
     ((dvo::visualization::PclCameraTrajectoryVisualizer*) visualizer)->bindSwitchToKey(pause_switch, "p");
+    ((dvo::visualization::PclCameraTrajectoryVisualizer*) visualizer)->bindSwitchToKey(dump_camera_pose_, "s");
+
+    if(cfg_.RenderVideo)
+    {
+      ((dvo::visualization::PclCameraTrajectoryVisualizer*) visualizer)->bindSwitchToKey(load_camera_pose_, "l");
+      ((dvo::visualization::PclCameraTrajectoryVisualizer*) visualizer)->visualizer().getRenderWindow()->SetSize(1280, 960);
+    }
   }
   else
   {
@@ -349,6 +417,7 @@ void BenchmarkNode::run()
 
     // pause in the beginning
     renderWhileSwitchAndNotTerminated(visualizer, pause_switch);
+    processInput(visualizer);
 
     if(!reference)
     {
