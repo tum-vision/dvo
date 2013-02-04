@@ -57,9 +57,10 @@ float TDistributionScaleEstimator::compute(const cv::Mat& errors) const
   do
   {
     iterations += 1;
-    num = 0.0f;
     initial_lamda = lambda;
-
+    num = 0.0f;
+    lambda = 0.0f;
+    
     const float* data_ptr = errors.ptr<float>();
 
     for(size_t idx = 0; idx < errors.size().area(); ++idx, ++data_ptr)
