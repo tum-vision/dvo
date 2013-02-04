@@ -37,7 +37,14 @@ namespace dvo
 {
 
 /**
- * Implementation of "Direct Iterative Closest Point for Real-time Visual Odometry".
+ * Implementation of:
+ *
+ *   "Robust Odometry Estimation for RGB-D Cameras"
+ *   "Real-Time Visual Odometry from Dense RGB-D Images"
+ *
+ * similar to:
+ *
+ *   "Direct Iterative Closest Point for Real-time Visual Odometry".
  */
 class DenseTracker
 {
