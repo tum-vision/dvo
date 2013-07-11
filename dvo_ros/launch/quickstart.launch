@@ -1,0 +1,17 @@
+<launch>
+  <arg name="debug" default="false" />
+  
+  <arg name="launch_prefix" value="xterm -e gdb --args" if="$(arg debug)" />
+  <arg name="launch_prefix" value="" unless="$(arg debug)" />
+  
+  <node launch-prefix="$(arg launch_prefix)" pkg="dvo_ros" type="camera_tracker" name="camera_tracker" output="screen">
+    <remap from="camera/rgb/image_rect" to="camera/rgb/image_color" />
+    <remap from="camera/depth_registered/image_rect_raw" to="camera/depth_registered/image_raw" />
+
+    <param name="reconstruction" type="bool" value="true" />
+    <param name="use_weighting" type="bool" value="true" />
+  </node>
+  
+  <node name="dynamic_reconfigure" pkg="dynamic_reconfigure" type="reconfigure_gui" args="/camera_tracker" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find dvo_ros)/launch/rviz.vcg" />
+</launch>
